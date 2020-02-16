@@ -1,0 +1,120 @@
+/*
+  This model was created to determine whether or not certain
+  sailplane models are statistically safer (or less safe) than
+  others.
+
+  Certain models, such as the CA-4, have experienced very high
+  loss rates in fatal accidents; whereas other models, such as
+  the ASK-21s, have experienced relatively few hull losses in
+  fatal accidents.
+
+  Unfortunately, no organization appears to be maintaining an
+  accurate count of the number of sailplanes in active use let
+  alone the number of flight hours logged on each model.
+
+  Instead, all we have are the flight hours accumulated by aircraft
+  that have been destroyed in accidents reported to the NTSB.
+*/
+
+load (draw);
+load (descriptive);
+load (solve_rec);
+
+ratprint: false;
+
+random_state: make_random_state (true);
+set_random_state (random_state);
+
+/* I. Simulation */
+
+GliderActive : 0;
+GliderRetired : 1;
+GliderDestroyed : 2;
+
+/* Represents gliders. */
+defstruct (Glider (yearCreated, yearDestroyed, flightHours, state));
+
+gliderAge (glider, year) := year - glider@yearCreated;
+
+/* Accepts a positive integer n and returns a list of n gliders. */
+createGliders (yearCreated, n) := makelist (new (Glider (yearCreated, 0, 0, GliderActive)), n);
+
+/*
+  * gliders (list Glider) the initial population of gliders
+  * manRate (positive integer) - the number of gliders manufactuered
+    per year
+  * retireRate (positive real) - probability that a glider will
+    be retired each year
+  * accidentRate (positive real) - probability that a glider will 
+    be destroyed in a hull-loss accident per year
+  * utilRate (positive real) - the average number of hours that
+    each glider is flown per year
+  * startYear (positive integer) - the year to start the simulation
+  * endYear (positive integer) - the year to end the simulation
+*/
+simulation (gliders, manRate, retireRate, accidentRate, utilRate, startYear, endYear)
+  := if startYear >= endYear
+       then gliders
+       else
+         append
+           (createGliders (startYear, manRate),
+            maplist
+              (lambda ([glider],
+                if glider@state = GliderActive
+                  then
+                    if random (1.0) <= accidentRate
+                      then
+                        block
+                          (glider@yearDestroyed : startYear,
+                           glider@state : GliderDestroyed,
+                           glider)
+                      else
+                        if random (1.0) <= retireRate
+                          then
+                            block
+                              (glider@state : GliderRetired,
+                               glider)
+                          else
+                            block
+                              (glider@flightHours : glider@flightHours + utilRate,
+                               glider@state : GliderActive,
+                               glider)
+                  else glider),
+               simulation (gliders, manRate, retireRate, accidentRate, utilRate, startYear + 1, endYear)));
+
+/*
+  The average number of flight hours accumulated by destroyed aircraft in each year.
+*/
+meanHoursInYear (gliders, year)
+  := block
+       ([hours],
+        hours
+          : map
+              (lambda ([glider], glider@flightHours),
+               sublist
+                 (gliders,
+                  lambda
+                   ([glider],
+                     glider@state = GliderDestroyed and
+                     glider@yearDestroyed = year))),
+        if length (hours) > 0
+          then mean (hours)
+          else 0);
+
+meanHoursPerYear (manRate, retireRate, accidentRate, utilRate, startYear, endYear)
+  := block
+       ([gliders],
+        gliders : simulation ([], manRate, retireRate, accidentRate, utilRate, startYear, endYear),
+        makelist
+          (meanHoursInYear (gliders, startYear + n),
+           n, endYear - startYear));
+
+display (manRate, retireRate, accidentRate, utilRate, startYear, endYear)
+  := block
+       ([hours],
+        hours : meanHoursPerYear (manRate, retireRate, accidentRate, utilRate, startYear, endYear),
+        draw2d
+          (point_size = 2,
+           point_type = filled_circle,
+           points (hours)));
+

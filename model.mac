@@ -14,12 +14,21 @@
 
   Instead, all we have are the flight hours accumulated by aircraft
   that have been destroyed in accidents reported to the NTSB.
+
+  Data Sources:
+  * https://registry.faa.gov/aircraftinquiry/AcftRef_Results.aspx?Mfrtxt=&Modeltxt=ASK-21&PageNo=1
+    Aircraft registration data (num active gliders of a given model in the US)
+  * https://wingsandwheels.com/classifieds/?m=glider
+    Average age and flight hours
+  * https://aviation-safety.net/wikibase/wikisearch.php
+    Number of accidents per model
 */
 
-load (draw);
-load (eigen);
-load (descriptive);
-load (solve_rec);
+load (draw)$
+load (eigen)$
+load (descriptive)$
+load (solve_rec)$
+load (lsquares)$
 
 ratprint: false;
 
@@ -235,11 +244,12 @@ meanAge (km, ts, te, kr, ka, t)
 
 /*
 */
-plotMeanAge (km, ts, te, kr, ka)
+plotMeanAge (km, ts, te, kr, ka, t)
   := draw2d
-       (explicit (meanAge (km, ts, te, kr, ka, t), t, ts, te),
+       (grid = true,
+        explicit (meanAge (km, ts, te, kr, ka, u), u, ts, t),
         color = red,
-        explicit (t - ts, t, ts, te));
+        explicit (u - ts, u, ts, t));
 
 /*
   Accepts three arguments:
@@ -268,3 +278,40 @@ meanAgeLim (km, kr, ka)
   := block
        (assume (kr + ka > 0),
         limit (meanAge (km, 0, t, kr, ka, t), t, inf));
+
+/*
+*/
+accidentRateFromMeanAge (km, ts, te, kr, t, x)
+  := find_root (meanAge (km, ts, te, kr, ka, t) - x, ka, 1e-7, 1);
+
+/*
+*/
+accidentRateFromNumAccidents (km, ts, te, kr, t, x)
+  := find_root (numAccidents (km, ts, te, kr, ka, t) - x, ka, 1e-7, 1);
+
+/*
+*/
+defstruct (Glider (modelName, manYear, hours, date));
+
+/*
+  Represents glider model information
+
+  * nm, the number of gliders manufactured
+  * ts, the year in which the manufacturer started manufacturing
+    the given glider model
+  * te, the year in which the manufacturer stopped manufacturing
+    the given glider model
+  * ta, the mean age of gliders currently in service
+  * na, the total number of gliders destroyed in accidents
+*/
+defstruct (Model (nm, ts, te, ta, na));
+
+/* Schweizer SGS 2-33 */
+/* model233 : Model (579, 1967, 1981, mean ([2020 - 1972, 2020 - 1969, 2020 - 1973, 2020 - 1967, 2020 - 1979, 2020 - 1968]), 11 + 7 + 4); */
+model233 : Model (579, 1967, 1975, mean ([2020 - 1972, 2020 - 1969, 2020 - 1973, 2020 - 1967, 2020 - 1979, 2020 - 1968]), 11 + 7 + 4);
+
+modelAccidentRateFromAge (model)
+  := accidentRateFromMeanAge (model@nm / (model@te - model@ts), model@ts, model@te, 0, 2020, model@ta);
+
+modelAccidentRateFromNumAccidents (model)
+  := accidentRateFromMeanAge (model@nm / (model@te - model@ts), model@ts, model@te, 0, 2020, model@ta);

@@ -155,136 +155,98 @@ accidentProb (ka)
   := 1 - %e^(- ka);
 
 /*
-/*
-minAge (manEnd, t) := max (0, t - manEnd);
-maxAge (manStart, t) := max (0, t - manStart);
+  Accepts two arguments, ts and t, the year in which the manufacturer
+  stopped manufacturing the given glider model and the current year
+  respectively; and returns the minimum age of those gliders that
+  are still in service.
+*/
+minAge (te, t) := max (0, t - te);
 
-numAccidents (manStart, manEnd, manRate, kr, ka, t)
+/*
+  Accepts two arguments, ts and t, the year in which the manufacturer
+  started manufacturing the given glider model and the current year
+  respectively; and returns the maximum age of those gliders that
+  are still in service.
+*/
+maxAge (ts, t) := max (0, t - ts);
+
+frameShift (te, t) := max (0, t - te);
+
+frameLen (ts, te, t) := min (te - ts, t - ts);
+
+/*
+  Accepts six arguments:
+
+  * km, the number of gliders manufactured each year
+  * ts, the year in which the manufacturer started manufacturing
+    the given glider model
+  * te, the year in which the manufacturer stopped manufacturing
+    the given glider model
+  * kr, the rate at which gliders are retired
+  * ka, the rate at which gliders are destroyed in accidents
+  * t, the current year
+
+  and returns the number of gliders in year t.
+*/
+numGliders (km, ts, te, kr, ka, t)
   := integrate
-       (ev (H, km = manRate, ka = ka, kr = kr),
-        t, minAge (manEnd, t), maxAge (manStart, t));
-
-numAccidentsByCohortAge (manRate, kr, ka, age)
-  := block
-       ([M],
-        M : accidentMatrix (kr, ka),
-        (M ^^ age) . columnvector ([manRate, 0]));
-*/
-numGlidersAgeEqnN
-  : rhs (solve_rec (f [n] = f [n - 1] * (1 - kr - ka), f [n], f [0] = manRate));
-
-numGlidersAgeEqnC
-  : limit
-      (subst
-        ([
-          kr   = kr / a,
-          ka = ka / a,
-          n            = age * a
-         ],
-         numGlidersAgeEqnN),
-       a, inf);
+       (cohortNumGliders (km, kr, ka, age),
+        age, minAge (te, t), maxAge (ts, t));
 
 /*
-  Accepts three arguments:
+  Accepts six arguments:
 
-  * manRate, a real number that represents the rate at which gliders
-    are manufactured;
-  * kr, a real number that represents the rate at which
-    gliders are retired or destroyed in accidents;
-  * and age, a real number that represents a number of years
+  * km, the number of gliders manufactured each year
+  * ts, the year in which the manufacturer started manufacturing
+    the given glider model
+  * te, the year in which the manufacturer stopped manufacturing
+    the given glider model
+  * kr, the rate at which gliders are retired
+  * ka, the rate at which gliders are destroyed in accidents
+  * t, the current year
 
-  and returns the number of active gliders that have age age.
-
-              - (kr + ka) age
-    manRate %e
+  and returns the number of accidents that have occured after
+  t years.
 */
-
-getNumGlidersAge (manRate, kr, ka, age)
-  := ev (numGlidersAgeEqnC);
-
-numGlidersEqnN
-  : rhs (solve_rec (f [n] = f [n - 1]*(1 - kr - ka) + manRate, f [n], f [0] = 0));
-
-numGlidersEqnC
-  : limit
-      (subst
-        ([
-          manRate      = manRate / a,
-          kr   = kr / a,
-          ka = ka / a,
-          n            = t * a
-         ],
-         numGlidersEqnN),
-       a, inf);
-
-frameShift (manEnd, t) := max (0, t - manEnd);
-
-frameLen (manStart, manEnd, t) := min (manEnd - manStart, t - manStart);
+numAccidents (km, ts, te, kr, ka, t)
+  := integrate
+       (cohortNumAccidents (km, kr, ka, age),
+        age, minAge (te, t), maxAge (ts, t));
 
 /*
-  Accepts three arguments:
+  Accepts six arguments:
 
-  * manRate, a real number that represents the rate at which gliders
-    are manufactured;
-  * kr, a real number that represents the rate at which
-    gliders are retired or destroyed in accidents;
-  * and t, a real number that represents a number of years
+  * km, the number of gliders manufactured each year
+  * ts, the year in which the manufacturer started manufacturing
+    the given glider model
+  * te, the year in which the manufacturer stopped manufacturing
+    the given glider model
+  * kr, the rate at which gliders are retired
+  * ka, the rate at which gliders are destroyed in accidents
+  * t, the current year
 
-  and returns the number of gliders that are active after t years.
-
-            manRate                  - (kr + ka) t
-    ------------------------- (1 - %e                               )
-    kr + ka
+  and returns the mean age of the remaining gliders.
 */
-getNumGliders (manStart, manEnd, manRate, kr, ka, t)
-  := integrate (getNumGlidersAge (manRate, kr, ka, u + frameShift (manEnd, t)), u, 0, frameLen (manStart, manEnd, t));
-
-if not is (numGliders (1, 0, 0, 10) = 10)
-  then error ("Error: numGliders failed sanity check.")$
-/* Note: it is worrisome that this check fails.
-if not is (numGliders (1, 1, 10) = 0)
-  then error ("Error: numGliders failed sanity check.")$
-*/
-
-/*
-  Accepts three arguments:
-
-  * manRate, a real number that represents the rate at which gliders
-    are manufactured;
-  * kr, a real number that represents the rate at which
-    gliders are retired or destroyed in accidents;
-  * age and t, real numbers that represents a number of years
-
-  and returns the mean age of active gliders in year t.
-
-
-      (kr + ka) t
-    %e           - (kr + ka) t - 1
-    ------------------------------
-                  (kr + ka) t
-     (kr + ka) (%e           - 1)
-*/
-
-
-getMeanGlidersAge (manStart, manEnd, manRate, kr, ka, t)
+meanAge (km, ts, te, kr, ka, t)
   := block
        (assume (t > 0),
-        integrate (age * getNumGlidersAge (manRate, kr, ka, age), age, minAge (manEnd, t), maxAge (manStart, t))/
-        getNumGliders (manStart, manEnd, manRate, kr, ka, t));
-
-plotMeanGliderAge (manStart, manEnd, manRate, kr, ka)
-  := draw2d
-       (explicit (getMeanGlidersAge (manStart, manEnd, manRate, kr, ka, t), t, manStart, manEnd),
-        color = red,
-        explicit (t - manStart, t, manStart, manEnd));
+        integrate (age * cohortNumGliders (km, kr, ka, age), age, minAge (te, t), maxAge (ts, t))/
+        numGliders (km, ts, te, kr, ka, t));
 
 /*
-  Accepts two arguments:
+*/
+plotMeanAge (km, ts, te, kr, ka)
+  := draw2d
+       (explicit (meanAge (km, ts, te, kr, ka, t), t, ts, te),
+        color = red,
+        explicit (t - ts, t, ts, te));
+
+/*
+  Accepts three arguments:
  
-  * manRate, a real number that represents the rate at which gliders
-    are manufactured;
-  * kr, a real number that represents the rate at which
-    gliders are retired or destroyed in accidents;
+  * km, the number of gliders manufactured each year
+  * kr, the rate a which gliders are retired
+  * ka, the rate a which gliders are destroyed in accidents
 
   and returns the average age of an active glider after an infinite
   number of years.
@@ -294,46 +256,15 @@ plotMeanGliderAge (manStart, manEnd, manRate, kr, ka)
 
   While production is ongoing, this tends to:
 
-              1
-   ------------------------
+      1
+   -------
    kr + ka
 
   once production stops, this grows linearly to infinity. This
   behavior makes sense, as the survivors continue to age linearly
   after production has ceased.
 */
-getLimitMeanGlidersAge (manStart, manEnd, manRate, kr, ka)
+meanAgeLim (km, kr, ka)
   := block
        (assume (kr + ka > 0),
-        assume (t > 0),
-        assume (te > 0),
-        assume (t > te),
-        limit (getMeanGlidersAge (manStart, manEnd, manRate, kr, ka, t), t, inf));
-
-/*
-  The following functions complicate the reference scenario in the
-  following way.
-
-  We now assume that the manufacturer manufactures a given number
-  of gliders, numManGliders, over a given time period, manYears,
-  at a constant rate, manRate. At each instant, each glider has a
-  given probability of being retired or destroyed in an accident
-  (kr).
-
-  In this scenario, there are now two periods: the period in which
-  the manufacturer is producing the gliders, and the period after
-  production has ceased.
-
-  Publically available data gives numManGliders, manYears, the
-  number of destroyed aircraft, and the ages of active gliders
-  in different years. 
-
-  We want to determine kr and destroyRate for each glider
-  model to estimate the relative safety of different glider models. 
-
-  manRate = numManGliders / manYears.
-
-  Using public data, we can estimate the average age of gliders in each year by taking the mean of the ages of aircraft sold or mentioned in accident reports.
-  
-*/
-*/
+        limit (meanAge (km, 0, t, kr, ka, t), t, inf));

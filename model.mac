@@ -282,16 +282,12 @@ meanAgeLim (km, kr, ka)
 /*
 */
 accidentRateFromMeanAge (km, ts, te, kr, t, x)
-  := find_root (meanAge (km, ts, te, kr, ka, t) - x, ka, 1e-7, 1);
+  := find_root (meanAge (km, ts, te, kr, ka, t) - x, ka, 1e-6, 1);
 
 /*
 */
 accidentRateFromNumAccidents (km, ts, te, kr, t, x)
-  := find_root (numAccidents (km, ts, te, kr, ka, t) - x, ka, 1e-7, 1);
-
-/*
-*/
-defstruct (Glider (modelName, manYear, hours, date));
+  := find_root (numAccidents (km, ts, te, kr, ka, t) - x, ka, 1e-6, 1);
 
 /*
   Represents glider model information
@@ -307,11 +303,21 @@ defstruct (Glider (modelName, manYear, hours, date));
 defstruct (Model (nm, ts, te, ta, na));
 
 /* Schweizer SGS 2-33 */
-/* model233 : Model (579, 1967, 1981, mean ([2020 - 1972, 2020 - 1969, 2020 - 1973, 2020 - 1967, 2020 - 1979, 2020 - 1968]), 11 + 7 + 4); */
-model233 : Model (579, 1967, 1975, mean ([2020 - 1972, 2020 - 1969, 2020 - 1973, 2020 - 1967, 2020 - 1979, 2020 - 1968]), 11 + 7 + 4);
+/* model233 : Model (579, 1967, 1981, 2020 - 1972.848167539267, 11 + 7 + 4); */
+/* model233 : Model (579, 1967, 1981, 47.15183246073297, 11 + 7 + 4); */
+model233 : Model (579, 1967, 1981, 47.15183246073297, 11 + 7 + 4);
 
 modelAccidentRateFromAge (model)
-  := accidentRateFromMeanAge (model@nm / (model@te - model@ts), model@ts, model@te, 0, 2020, model@ta);
+  := accidentRateFromMeanAge
+       (model@nm / (model@te - model@ts), model@ts, model@te, 0, 2020, model@ta);
+
+plotAccidentRateFromAge (model)
+  := draw2d (
+       grid = true,
+       explicit(meanAge (model@nm / (model@te - model@ts), model@ts, model@te, 0, ka, 2020), ka, -1e-1, 1e-1),
+       color = red,
+       explicit(model@ta, x, -1e-1, 1e-1)
+     );
 
 modelAccidentRateFromNumAccidents (model)
   := accidentRateFromMeanAge (model@nm / (model@te - model@ts), model@ts, model@te, 0, 2020, model@ta);

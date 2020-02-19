@@ -302,15 +302,25 @@ accidentRateFromNumAccidents (km, ts, te, kr, t, x)
 */
 defstruct (Model (nm, ts, te, ta, na));
 
+/*
+mean (read_list ("manYears.dat", space));
+draw2d (points (read_matrix ("ask21ManYears.dat")));
+*/
+
 /* Schweizer SGS 2-33 */
-/* model233 : Model (579, 1967, 1981, 2020 - 1972.848167539267, 11 + 7 + 4); */
-/* model233 : Model (579, 1967, 1981, 47.15183246073297, 11 + 7 + 4); */
 model233 : Model (579, 1967, 1981, 47.15183246073297, 11 + 7 + 4);
+/* Aviastroitel AC-4 */
+modelAC4 : Model (60, 1993, 2003, 2020 - 1997.6, 8);
+
+modalASK21 : Model (900, 1979, 2020, 2020 - 1999.962962962963, 8);
+
+modelMeanAge (model, ka)
+  := meanAge (model@nm / (model@te - model@ts), model@ts, model@te, 0, ka, 2020);
 
 modelAccidentRateFromAge (model)
   := accidentRateFromMeanAge
        (model@nm / (model@te - model@ts), model@ts, model@te, 0, 2020, model@ta);
-
+/*
 plotAccidentRateFromAge (model)
   := draw2d (
        grid = true,
@@ -318,6 +328,20 @@ plotAccidentRateFromAge (model)
        color = red,
        explicit(model@ta, x, -1e-1, 1e-1)
      );
+*/
+plotAccidentRateFromAge (model)
+  := draw2d (
+       grid = true,
+       explicit(meanAge (model@nm / (model@te - model@ts), model@ts, model@te, 0, ka, 2020), ka, -1, 1),
+       color = red,
+       explicit(model@ta, x, -1, 1)
+     );
 
 modelAccidentRateFromNumAccidents (model)
   := accidentRateFromMeanAge (model@nm / (model@te - model@ts), model@ts, model@te, 0, 2020, model@ta);
+
+genHist (fileName)
+  := block
+       ([data],
+        data : list_matrix_entries (col (read_matrix (fileName), 2)),
+        histogram (data, nclasses = length (unique (data)) + 2));

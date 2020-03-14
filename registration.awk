@@ -29,7 +29,6 @@ BEGIN {
   close("mktemp")
 
   fetchURL(searchResultsFileName, searchURL(urlPrefix, modelName, currentPage))
-
   numMakeModelURLs = 0
   maxPageNum = 10
   while ((getline currentLine < searchResultsFileName) > 0) {

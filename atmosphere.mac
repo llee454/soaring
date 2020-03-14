@@ -1,0 +1,133 @@
+/* 
+  This library contains equations that represent the atmospheric
+  model presented in chapter 5 of Holtz Glider Pilot's Handbook of
+  Aeronautical Knowledge (1).
+*/
+
+/*
+  The equation relating an absolute altitude, a, the static pressure
+  at a, p.
+
+  Note: see figure 5.1 in [1].
+*/
+pressureEq : p = pressureStd * %e^(- k * a)$
+
+/*
+  The Pressure Lapse Rate - i.e. the change in static pressure
+  w.r.t absolute altitude in the Standard Atmosphere.
+
+  Note: see section 5.1 in [1].
+*/
+pressureRateEq : - 1.0 = subst (0, a, diff (rhs (pressureEq), a))$
+
+/* Represents the pressure rate constant. */
+pressureRateK : rhs (solve (pressureRateEq, k) [1])$
+
+/*
+  Accepts one argument: a, an absolute altitude; and returns the
+  static pressure at that altitude.
+*/
+pressure (a) := ev (rhs (pressureEq), k = pressureRateK)$
+
+/*
+  The equation expressing pressure altitude - i.e the altitude
+  that you would need to be at to observe the given pressure in
+  the Standard Atmosphere.
+
+                        pressureStd
+    a = pressureStd log(-----------)
+                             p
+*/
+altPressureEq : solve (subst (pressureRateK, k, pressureEq), a)[1]$
+
+/*
+  Accepts one argument: p, a static pressure; and returns the
+  altitude that you would need to be at in the Standard Atmosphere
+  to observe p.
+*/
+altPressure (p) := ev (rhs (altPressureEq), p = p);
+
+/*
+  The equation relating static pressure, p, to density, d, and
+  absolute altitude, a; assuming standard temperature.
+*/
+densityEq : solve (diff (pressure (a) = integrate (d (x), x, a, inf), a), d (a))[1]$
+
+/*
+  Accepts one argument: a, an absolute altitude; and returns the
+  density that would be observed at a in the Standard atmosphere.
+*/
+density (a) := ev (rhs (densityEq), a = a)$
+
+/*
+  The equation expressing density altitude - i.e. the altitude
+  that you would need to be at to observe the given density in the
+  Standard atmosphere.
+
+  Note: this is not the Density Altitude, which accounts for non
+  standard temperature.
+*/
+altDensityEq : solve (subst (d, d (a), log (densityEq)), a)[1]$
+
+/*
+  Accepts one argument: d, the observed density; and returns the
+  absolute altitude that you would need to be at in the Standard
+  Atmosphere to observe d.
+*/
+altDensity (d) := ev (rhs (altDensityEq), d = d)$
+
+/*
+  Represents the temperature lapse rate.
+
+  Note: See figure 5.2 in [1].
+*/
+tempRate : -3.6$ /* 3.3 deg. F / 1000 ft */
+
+/*
+  Accepts one argument: a, a pressure altitude; and returns the
+  temperature at a in the Standard Atmosphere.
+*/
+tempStd (a) := 60 + tempRate * a$
+
+/*
+  The equation relating density altitude, pressure altitude, and
+  temperature while assuming standard pressure at sea level.
+
+  Note: see figure 5.9 in [1].
+
+  Note: Review question 5.2.8 in [1]: Indicated Altitude, when
+  set correctly reflects Pressure Altitude. True Altitude when
+  temperature lapse rate is accurate (i.e. no temperature inversions,
+  etc), reflects Density Altitude. aI ~ aD. aT ~ aP. Hence, this
+  equation explains why, on cold days, "true altitude will be lower
+  than indicated altitude."
+*/
+tempAltEq : aD = aP + (t - tempStd (aP))/15$
+
+/* Represents the pressure at sea level in the Standard Atmosphere. */
+pressureStd : 29.92$
+
+/*
+  Here we make a simple extension to the model and assume that air
+  is compressible and that the compression effect is linear.
+
+  Note: see Pressure Altitude Correction scale in figure 5.9.
+*/
+compressionCoeff : 1.824/altPressure (28.0), numer$
+
+/*
+  Accepts three arguments: a, an indicated altitude (1000 ft); p,
+  surface pressure (in. Hg); and t, temperature (F); and returns
+  the density altitude.
+
+  Note: see figure 5.9 in [1].
+*/
+altDensityFull (a, t, p) := ev (rhs (tempAltEq), t = t, aP = a + altPressure (p) * compressionCoeff)$
+
+/*
+  The equation relating density to static pressure and temperature.
+
+                           1.24   - 0.002228163992869875 t
+  d = 0.01689928728750139 p     %e
+*/
+densityFullEq : ev (radcan (solve (ev (tempAltEq, aD = altDensity (d), aP = altPressure (p), numer), d)[1]), numer)$

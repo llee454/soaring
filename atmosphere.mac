@@ -26,9 +26,8 @@ load (draw)$
 
 /*
   The equation relating an altitude above sea level (1000 ft),
-  a, and the static pressure at a (in. Hg), p, assuming standard
-  pressure (29.92 in. Hg) and temperature (60 deg. F) at sea level,
-  and a standard temperature lapse rate (-1 in. Hg / 1000 ft).
+  a, and the static pressure at a (in. Hg), p, in the Standard
+  Atmosphere.
 
   Note: see figure 5.1 in [1].
 
@@ -45,9 +44,6 @@ load (draw)$
     * g - earth surface gravitational acceleration
     * M - molar mass
     * T0 - standard temperature at sea level.
-
-  Instead, we use derive pressureCoeff using Holtz's pressure lapse
-  rate approximation, which leads to 1/pressureStd.
 */
 pressureEq : p = pressureStd * %e^(- pressureCoeff * a)$
 

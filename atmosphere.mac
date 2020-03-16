@@ -49,9 +49,8 @@ pressureEq : p = pressureStd * %e^(- pressureCoeff * a)$
 
 /*
   Accepts one argument: a, an altitude above sea level (1000 ft);
-  and returns the static pressure (in. Hg) at a assuming standard
-  pressure (29.92 in. Hg) and temperature (60 deg. F) at sea level,
-  and a standard temperature lapse rate (- 1 in. Hg / 1000 ft).
+  and returns the static pressure (in. Hg) at a in the Standard
+  Atmosphere.
 
                   - pressureCoeff a
     pressureStd %e
@@ -125,6 +124,14 @@ densityEq : d = 1.325 * p / (t + 459.7)$
   and returns the density of the air at a.
 */
 density (p, t) := ev (rhs (densityEq), p = p, t = t)$
+
+/*
+*/
+plotDensity ()
+  := draw3d
+       (enhanced3d = [density (p, t), p, t, d],
+        line_width = 2,
+        explicit (density (p, t), p, 20, 29.92, t, 40, 80))$
 
 /*
   Relates density, d, to the altitude (1000 ft), a, above sea level

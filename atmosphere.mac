@@ -1,38 +1,28 @@
 /* 
   This library contains equations that represent the atmospheric
   model presented in chapter 5 of Holtz Glider Pilot's Handbook of
-  Aeronautical Knowledge (1).
+  Aeronautical Knowledge.
 
   Standard Atmosphere
   -------------------
 
-  The standard atmosphere is defined by 4 parameters:
+  The Standard Atmosphere is defined by 5 parameters:
 
   * the standard pressure at sea level: 29.92 in. Hg
   * the standard temperature at sea level: 60 deg. F
   * the standard pressure lapse rate: ~ -1.0 in. Hg/1000 ft
   * the standard temperature lapse rate: ~ 3.6 deg. F/1000 ft
 
-  Altitude Types
-  --------------
+  Sources
+  -------
 
-  Pressure Altitude (observedPressure)
-        |      :
-        |      : correct for non standard pressure
-        |      v
-        |    Indicated Altitude (ideal with no calibration errors)
-        |      = Pressure Altitude corrected for non standard pressure
-        |
-        | correct for non standard pressure and temperature
-        v
-  Density Altitude (observedPressure, observedTemperature)
-
-  Pressure Altitude approximatess Indicated Altitude assuming
-  standard pressure.
-
-  Density Altitude approximates True Altitude assuming standard
-  temperature lapse rate.
+  1. Glider Pilot's Handbook of Aeronautical Knowledge
+  2. https://en.wikipedia.org/wiki/Density_of_air
+  3. https://www.engineeringtoolbox.com/air-temperature-pressure-density-d_771.html
+     Formala for air density using in. Hg and deg. F.
 */
+
+load (draw)$
 
 /*
   The equation relating an altitude above sea level (1000 ft),
@@ -41,22 +31,25 @@
   and a standard temperature lapse rate (-1 in. Hg / 1000 ft).
 
   Note: see figure 5.1 in [1].
+
+  Note: According to [2], the relation between pressure and altitude
+  can be approximated by an equation of the form:
+
+                 - pressureCoeff a
+    pressureStd e 
+
+  where pressureCoeff = (R L - g M)/(RL T0) and:
+
+    * R - ideal gase constant
+    * L - temperature lapse rate
+    * g - earth surface gravitational acceleration
+    * M - molar mass
+    * T0 - standard temperature at sea level.
+
+  Instead, we use derive pressureCoeff using Holtz's pressure lapse
+  rate approximation, which leads to 1/pressureStd.
 */
-pressureEq : p = pressureStd * %e^(- k * a)$
-
-/*
-  The Pressure Lapse Rate (in. Hg / 1000 ft) - i.e. the change in
-  static pressure w.r.t altitude above sea level in the Standard
-  Atmosphere.
-
-    - 1.0 = - k pressureStd
-
-  Note: see section 5.1 in [1].
-*/
-pressureRateEq : - 1.0 = subst (0, a, diff (rhs (pressureEq), a))$
-
-/* Represents the pressure coefficient (1 / 1000 ft). */
-pressureCoeff : rhs (solve (pressureRateEq, k) [1])$
+pressureEq : p = pressureStd * %e^(- pressureCoeff * a)$
 
 /*
   Accepts one argument: a, an altitude above sea level (1000 ft);
@@ -64,20 +57,26 @@ pressureCoeff : rhs (solve (pressureRateEq, k) [1])$
   pressure (29.92 in. Hg) and temperature (60 deg. F) at sea level,
   and a standard temperature lapse rate (- 1 in. Hg / 1000 ft).
 
-                  - a/pressureStd
+                  - pressureCoeff a
     pressureStd %e
-
 */
-pressure (a) := ev (rhs (pressureEq), k = pressureCoeff)$
+pressure (a) := ev (rhs (pressureEq), a = a)$
+
+/*
+  Plots approximate pressure in the Standard Atmosphere.
+
+  Note: compare with figure 5.1 in [1].
+*/
+plotPressure () := draw2d (explicit (pressure (x), x, 0, 60), yrange = [0, 30], grid = true)$
 
 /*
   The equation expressing Pressure Altitude - i.e the altitude above
   sea level (1000 ft) that you would need to be at to observe the
   given pressure (in. Hg), p, in the Standard Atmosphere.
 
-                        pressureStd
-    a = pressureStd log(-----------)
-                             p
+              1           pressureStd
+    a = ------------- log(-----------)
+        pressureCoeff          p
 */
 altPressureEq : solve (subst (pressureCoeff, k, pressureEq), a)[1]$
 
@@ -86,32 +85,11 @@ altPressureEq : solve (subst (pressureCoeff, k, pressureEq), a)[1]$
   the altitude above sea level (1000 ft) that you would need to be
   at in the Standard Atmosphere to observe p.
 
-                    pressureStd
-    pressureStd log(-----------)
-                         p
+         1          pressureStd
+    ----------- log(-----------)
+    pressureStd          p
 */
-altPressure (p) := ev (rhs (altPressureEq), p = p);
-
-/*
-  The equation relating Density Altitude (1000 ft), aD, Pressure
-  Altitude (1000 ft), aP, and temperature at the corresponding True
-  Altitude (deg. F) while assuming standard pressure (29.92 in. Hg)
-  at sea level.
-
-         t - tempStd(aP)
-    aD = --------------- + aP
-               15
-
-  Note: see figure 5.9 in [1].
-
-  Note: Review question 5.2.8 in [1]: Indicated Altitude, when
-  set correctly reflects Pressure Altitude. True Altitude when
-  temperature lapse rate is accurate (i.e. no temperature inversions,
-  etc), reflects Density Altitude. aI ~ aD. aT ~ aP. Hence, this
-  equation explains why, on cold days, "true altitude will be lower
-  than indicated altitude."
-*/
-altDensityEq : aD = aP + (t - tempStd (aP))/15$
+altPressure (p) := ev (rhs (altPressureEq), p = p)$
 
 /*
   The approximate temperature lapse rate (deg. F/1000 ft).
@@ -126,78 +104,168 @@ tempRate : -3.6$
 */
 tempStd (a) := 60 + tempRate * a$
 
+/* Plots the standard temperature. */
+plotTempStd () := draw2d (explicit (tempStd (a), a, 0, 30), grid = true)$
+
+/*
+  Relates density, d, with static pressure (in. Hg), p, and
+  temperature (deg. F), t.
+
+  Note: this is just the ideal gas law with densityCoeff substituted
+  for the specific gase constant. See [2].
+
+  Note: According to [3], the equation for air density is given by:
+
+    ρ = 1.325 p / (t + 459.7)
+
+  for example: ρ = 1.325 (29.92 inches Hg) / ((100 oF) + 459.7),
+  where the resulting density is in lb/ft3.
+*/
+densityEq : d = 1.325 * p / (t + 459.7)$
+
+/*
+  Accepts two arguments: p, the static pressure (in. Hg) at an
+  implicit true altitude, a; and t, the temperature at a (deg. F);
+  and returns the density of the air at a.
+*/
+density (p, t) := ev (rhs (densityEq), p = p, t = t)$
+
+/*
+  Relates density, d, to the altitude (1000 ft), a, above sea level
+  that you would need to be at in the Standard Atmosphere to observe
+  the given density.
+*/
+altDensityEq : d = density (pressure (a), tempStd (a))$
+
 /* The pressure (in. Hg) at sea level in the Standard Atmosphere. */
 pressureStd : 29.92$
 
 /*
-  The equation relating Density Altitude (1000 ft), aD, temperature
-  at the altitude above sea level corresponding to aD (deg. F), t,
-  and pressure at the altitude above sea level corresponding to aD
-  (in. Hg), p, assuming standard pressure (29.92 in. Hg) at sea level.
+  The relation between:
 
-    aD = kt t - kp ln (p) + ka
+  * A - a true altitude
+  * p - the static pressure (in. Hg) at A;
+  * t - the temperature (deg. F) at A
+  * ap, the Pressure Altitude corresponding to p (1000 ft);
+  * and ae, the altitude correction (1000 ft) that must be added
+    to ap to derive the Density Altitude corresponding to p and t.
 
-  Note: we're effectively using p to compute estimate the altitude
-  above sea level (Pressure Altitude), and then apply a correction
-  factor to account for non standard temperature. This procedure
-  implicitly assumes standard pressure at sea level.
+  Note: 1, partial power series expansion of exponential term.
+
+  Note: 2, here, we assume that the Density Altitude can be
+  decomposed into two components: a Pressure Altitude, ap, and a
+  correction term, ae.
 */
-altDensityPressureTempEq : altDensityEq, aP = altPressure (p), radcan, expand, numer$
+altDensityCorrEq
+  : subst /* see: 1 */
+      (1 - ae * pressureCoeff + (ae * pressureCoeff)^2/2, 
+       %e^(- ae * pressureCoeff),
+       subst
+         (pressure (ap), p,
+          factor
+            (subst /* (see: 2) */
+              (ap + ae, a,
+               subst
+                 (density (p, t), d,
+                  altDensityEq)/
+               1.325)))/
+       pressure (ap));
 
 /*
-  Accepts three arguments: a, an Indicated Altitude (1000 ft);
-  p, pressure at sea level (in. Hg); and t, temperature (deg. F);
-  and returns the Density Altitude (1000 ft) corresponding to a.
+  Accepts two arguments: p, the static pressure (in. Hg) at an
+  implicit true altitude, a; and t, the temperature at a (deg. F);
+  and returns the approximate altitude correction that needs to be
+  added to the Pressure Altitude, ap, to derive the Density Altitude
+  - i.e. the altitude that you would need to be at in the Standard
+  Atmosphere to observe the air density that corresponds to p and t.
 
-  Note: see figure 5.9 in [1].
+  Note: this algorithm agrees with the method presented in [1]
+  where we first compute a Pressure Altitude using the observed
+  pressure and then compute an approximately linear correction term
+  using the observed temperature to derive the Density Altitude.
+
 */
-altIndicatedDensity (a, t, p)
-  := ev (rhs (altDensityEq), t = t, aP = a + altPressure (p) * compressionCoeff)$
+altDensityCorr (p, t)
+  := ev (rhs (solve (altDensityCorrEq, ae)[1]), ap = altPressure (p), p = p, t = t);
 
 /*
-  TODO
+  The Pressure Lapse Rate (in. Hg / 1000 ft) - i.e. the change in
+  static pressure w.r.t altitude above sea level in the Standard
+  Atmosphere.
 
-  The equation relating the pressure (in. Hg), p, observed at
-  an altitude (1000 ft), aD, given a temperature at sea level
-  (deg. F), t.
+    - 1.0 = - k pressureStd
+
+  Note: see section 5.1 in [1].
+
+  Note: Holtz says that the Pressure Lapse Rate is approximately -1
+  in. Hg / 1000 ft at sea level. This leads to a simplification in
+  our density equation compared to the standard exponential
+  approximation relating density and altitude. See [2]
 */
-/* densityPressureEq : solve (altDensityPressureTempEq, p)[1]$ */
+pressureRateEq : - 1.0 = subst (0, a, diff (pressureStd * %e^(-k * a), a))$
 
 /*
-  TODO
+  The pressure coefficient (1 / 1000 ft).
 
-  The equation relating the density of the air, d (a, t), at an
-  altitude (1000 ft), a, where the temperature at sea level (deg. F)
-  equals t.
+  Note: Here we use Holtz's approximation for the Pressure Lapse
+  Rate at sea level. This leads to a simplification of our equation
+  relating density to altitude.
+
+  Note: According to [2], the relation between pressure and altitude
+  can be approximated by an equation of the form:
+
+                 - pressureCoeff a
+    pressureStd e 
+
+  where pressureCoeff = (R L - g M)/(RL T0) and:
+
+    * R - ideal gase constant
+    * L - temperature lapse rate
+    * g - earth surface gravitational acceleration
+    * M - molar mass
+    * T0 - standard temperature at sea level.
+
+  Instead, we use derive pressureCoeff using Holtz's pressure lapse
+  rate approximation, which leads to 1/pressureStd.
+
+  Note: regression fitting on figure 5.1 in [1] suggests that the
+  pressureCoeff is closer to - 0.04.
 */
-/*
-densityEq
-  : solve
-      (diff
-        (subst (a, aD, rhs (densityPressureEq)) =
-         integrate (d (x, t), x, a, inf),
-         a),
-       d (a, t))$
-*/     
+/* pressureCoeff : rhs (solve (pressureRateEq, k) [1])$ */
+pressureCoeff : 0.04$
 
 /*
-  TODO
+  Accepts two arguments: p, the static pressure (in. Hg) observed at
+  some altitude above sea level, a; and t, the temperature (deg. F)
+  observed at a; and returns an approximation of the altitude above
+  sea level that you would need to be at to observe the air density
+  that corresponds to p and t in the Standard Atmosphere.
 
-  Accepts two arguments: a, an altitude above sea level (1000 ft);
-  t, a temperature (deg. F); and returns the density of the air at
-  a assuming standard pressure (29.92 in. Hg) and the temperature
-  t at sea level.
+  See: altDensityNum
 */
-/*
-density (a, t) := ev (rhs (densityEq), a = a, t = t)$
-*/
+altDensity (p, t) := altPressure (p) + altDensityCorr (p, t);
 
 /*
-  The compression coefficient of air (in. Hg).
+  Accepts two arguments: p, the static pressure (in. Hg) observed at
+  some altitude above sea level, a; and t, the temperature (deg. F)
+  observed at a; and returns an approximation of the altitude above
+  sea level that you would need to be at to observe the air density
+  that corresponds to p and t in the Standard Atmosphere.
 
-  Note: here we make a simple extension to the model and assume
-  that air is compressible and that the compression effect is linear.
-
-  Note: see Pressure Altitude Correction scale in figure 5.9.
+  Note: this function uses numerical methods to solve the Density
+  Altitude equation and returns a more accurate estimate that
+  altDensity.
 */
-compressionCoeff : 1.824/altPressure (28.0), numer$
+altDensityNum (p, t)
+  := ev (find_root (subst (density (p, t), d, altDensityEq), a, 0, 10), p = p, t = t)$
+
+/*
+  Accepts one argument: p, a static pressure (in. Hg); and returns
+  the Density Altitude approximations returned by altDensity and
+  altDensityNum for p over a range of temperatures.
+*/
+plotAltDensityApproxs (p)
+  := draw2d
+       (explicit (altDensity (p, t), t, 40, 80),
+        color = red,
+        explicit (altDensityApprox (p, t), t, 40, 80))$

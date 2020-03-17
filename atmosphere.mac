@@ -126,6 +126,8 @@ densityEq : d = 1.325 * p / (t + 459.7)$
 density (p, t) := ev (rhs (densityEq), p = p, t = t)$
 
 /*
+  Plots the relationship between pressure, temperature, and air
+  density in the Standard Atmosphere.
 */
 plotDensity ()
   := draw3d

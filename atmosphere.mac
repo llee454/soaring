@@ -318,7 +318,7 @@ altDensity (p, t) := altPressure (p) + publishedAltDensityCorr (p, t)$
   altDensity.
 */
 altDensityNum (p, t)
-  := ev (find_root (subst (density (p, t), d, altDensityEq), a, -10, 10), p = p, t = t)$
+  := ev (find_root (subst (density (p, t), d, altDensityEq), a, -15, 15), p = p, t = t)$
 
 /* IV. Plots */
 
@@ -421,8 +421,8 @@ plotAltDensityCorr ()
 */
 plotAltDensityApproxs (ap)
   := draw2d
-       (/*terminal = 'png,
-        file_name = "densityApproxs", */
+       (terminal = 'png,
+        file_name = "densityApproxs",
         explicit (altDensityNum (pressure (ap), t), t, tempStd (ap) - 40, tempStd (ap) + 40),
         color = red,
         explicit (altDensity (pressure (ap), t), t, tempStd (ap) - 40, tempStd (ap) + 40),

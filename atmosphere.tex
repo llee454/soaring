@@ -1,0 +1,163 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{gensymb}
+\usepackage{graphicx} % provides \includegraphics
+\usepackage[bottom]{footmisc} % positions footnotes at the bottom of each page.
+\usepackage{float} % force Latex to place figures where I want using "H".
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\setcounter{secnumdepth}{0}
+
+\author{Larry Lee}
+\title{Pressure, Temperature, and Density in the Standard Atmosphere}
+\begin{document}
+\maketitle
+\begin{abstract}
+\end{abstract}
+Overall, Holtz's "Glider Pilot's Handbook of Aeronautical Knowledge" provides an excellent and comprehensive overview of the atmosphere as concerns glider pilots. However, in aiming to present this information in an accessible manner, Holtz necessarily omits the mathematical details needed to fully comprehend the relationship between density, pressure, and temperature in the atmosphere. Instead, Holtz presents a simple model in which the atmosphere is treated as an incompressible fluid of constant density but varying thickness. He uses this model effectively to communicate the effect that variations in surface pressure and temperature have on the altimeters carried in gliders. The resulting exposition commendably builds intuition while allowing students to effectively anticipate the effects of pressure and temperature changes on altimeter readings and glider performance.
+
+Despite these positive attributes however, the FAA written test contains questions about the relationship between pressure, temperature, and density, whose answers cannot be inferred using the model presented by Holtz. Holtz recognizes these gaps and provides the answers to these questions directly. For example: the practice problems presented at the end of \ref{1} includes the following question:
+
+\begin{verbatim}
+-  Note: Review question 5.2.8 in [1]: Indicated Altitude, when
+-  set correctly reflects Pressure Altitude. True Altitude when
+-  temperature lapse rate is accurate (i.e. no temperature inversions,
+-  etc), reflects Density Altitude. aI ~ aD. aT ~ aP. Hence, this
+-  equation explains why, on cold days, "true altitude will be lower
+-  than indicated altitude.
+\end{verbatim}
+
+As an avid reader of Holtz's textbook, I found myself eager to understand the underlying relationship between pressure, temperature, and density in the atmosphere and the related concepts of Pressure and Density Altitude. In this article, I delve a little deeper into the concepts Holtz introduces in Chapter 5 and elaborate slightly on the model presented there.
+
+\section{The Standard Atmosphere}
+
+As explained by Holtz, the Standard Atmosphere is a model of the atmosphere. It consists of a set of properties, constant parameters, and relationships between these parameters. Holtz identifies three properties in his discussion of the Standard Atmosphere: pressure, temperature, and density.
+
+In the Standard Atmosphere, pressure and temperature are associated with two constant parameters: $p_{std}$, the pressure at sea; and $t_{std}$, the temperature at sea level.
+
+\begin{align*}
+  p_{std} =&\ 29.92\ in.\ Hg\\
+  t_{std} =&\ 60\degree\ F
+\end{align*}
+
+Pressure and temperature vary with altitude and Holtz provides simple approximations for the relationships between pressure, temperature, and altitude. For the altitudes that gliders typically fly at, the relationship between temperature and altitude can be expressed as:
+
+\begin{equation}
+t = t_{std} - t_{rate}\ a
+\end{equation}
+
+where $a$ (1000 ft) represents an altitude in the Standard Atmosphere, $t$ ($\degree F$) denotes the temperature, and $t_{rate} = 3.6\degree F$.
+
+Holtz observes that pressure falls by approximately 1 in. Hg / 1000 ft over the range of altitudes that typically concern glider pilots. The actual relationship between altitude and pressure is not linear however, and a more accurate approximation is provided by:
+
+\begin{equation}\label{pressure a}
+p = p_{std}\ e^{(- k_{p}\ a)}
+\end{equation}
+
+where $a$ (1000 ft) represents the altitude and $k_{p} \approx 0.04\ in.\ Hg/1000\ ft$.\footnote{(\ref{pressure a}) can be derived from the ideal gas law\ref{???} and this derivation leads to: $k_{p} = (R\ t_{rate}\ -\ g\ M)/(R\ t_{rate}\ t_{std})$, where $R$ represents the ideal gas constant, $g$, represents the earth surface gravitational acceleration, and $M$ represents the molar mass of dry air.
+
+Using Holtz's approximation for the pressure lapse rate leads to: $k_{p} \approx \frac{1}{p_{std}} \approx 0.03.$}
+
+Using \ref{pressure a}, we can plot the relationship between pressure and altitude within the Standard Atmosphere, reproducing figure 5.1 in Holtz:
+
+\begin{figure}[h]
+\includegraphics[width=\textwidth]{pressure.png} 
+\caption{The relationship between pressure and altitude.}
+\end{figure}
+
+While Holtz explains the relationship between pressure, temperature, and altitude, he elides the relationship between pressure, temperature, and density. Density is a linear function of pressure and temperature and is given by the following equation:
+
+\begin{equation}
+\label{density p t}
+d = 1.325 p / (t + 459.7)
+\end{equation}
+
+where $d$ ($lb/ft^3$) represents density, $p$ (in. Hg) represents pressure, and $t$ ($\degree $F) represents temperature.
+
+Furthermore, because every altitude within the Standard Atmosphere corresponds to a specific pressure and temperature, we can use (\ref{density p t}) to compute the density of the air at every altitude. In (\ref{plot density}), we plot the relationship between density and altitude in the Standard Atmosphere.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{density.png}
+\caption{The relationship between density and altitude.}
+\label{plot density}
+\end{figure}
+
+\section{Pressure Altitude and Density Altitude}
+
+Given a pressure $p$ (in. Hg), we can invert (\ref{pressure a}) to compute the altitude $a$ (1000 ft) that you would need to be at in the Standard Atmosphere to observe $p$. This altitude is called the Pressure Altitude. Solving (\ref{pressure a}) for $a$ gives:
+
+\begin{equation}
+\label{alt p}
+a = \frac{1}{k_{p}}\ e^{\frac{p_{std}}{p}}
+\end{equation}
+
+Similarly, given a pressure $p$ and a temperature $t$, we can compute the altitude $a$ that you would need to be at to observe the air density that corresponds to $p$ and $t$ in the Standard Atmosphere. This altitude is called the Density Altitude, and it satisfies the following equation:
+
+\begin{equation}
+\label{density alt eqn}
+density (p, t) = density\ (pressureAlt (a),\ altTemp (a))
+\end{equation}
+
+where $a$ represents an altitude, $density (p, t)$ ($lb/ft^3$) represents the density corresponding to $p$ (in. Hg) and $t$ ($\degree F$), $pressureAlt (a) = 29.92\ e^{(- 0.04\ a)}$ represents the pressure at $a$ in the Standard Atmosphere, and $altTemp (a) = 60 - 3.6\ a$ represents the temperature at $a$ in the Standard Atmosphere.
+
+Expanding (\ref{density alt eqn}) leads to:
+
+\begin{align}
+density (p, t) =& density\ (pressureAlt (a),\ altTemp (a))\\
+\frac{1.325 p}{t + 459.7} =& \frac{1.325\ pressureAlt (a)}{altTemp (a) + 459.7}\\
+\frac{p}{t + 459.7} =& \frac{pressureAlt (a)}{altTemp (a) + 459.7}\\
+\label{density alt deriv}
+\frac{p}{t + 459.7} =& \frac{29.92\ e^{(- 0.04\ a)}}{519.7 - 3.6\ a}
+\end{align}
+
+Now, we can assume that $a$ can be split into two terms, $a_{p}$ and $a_{c}$, where $a_{p}$ represents the Pressure Altitude corresponding to $p$ and $a_{c}$ is a correction term that we will add to $a_{p}$ to compute the Density altitude $a$. Substituting $a = a_{p} + a_{c}$ into \ref{density alt deriv} leads to:
+
+\begin{align}
+\frac{p}{t + 459.7} =& \frac{29.92\ e^{- 0.04\ a}}{519.7 - 3.6\ a}\\
+\frac{p}{t + 459.7} =& \frac{29.92\ e^{- 0.04\ a_{p}}\ e^{- 0.04\ a_{c}}}{519.7 - 3.6\ (a_{p} + a_{c})}\\
+\frac{29.92\ e^{- 0.04\ a_{p}}}{t + 459.7} =& \frac{29.92\ e^{- 0.04\ a_{p}}\ e^{- 0.04\ a_{c}}}{519.7 - 3.6\ (a_{p} + a_{c})}\\
+\label{alt corr eqn partial}
+\frac{1}{t + 459.7} =& \frac{e^{- 0.04\ a_{c}}}{519.7 - 3.6\ (a_{p} + a_{c})}\\
+t + 459.7 =& (519.7 - 3.6\ (a_{p} + a_{c}))\ e^{0.04\ a_{c}}\\
+\label{alt corr eqn}
+t =& (519.7 - 3.6\ (a_{p} + a_{c})\ e^{0.04\ a_{c}} - 459.7
+\end{align}
+
+There is no closed form analytic solution for (\ref{alt corr eqn}). However, we may derive a closed form approximation by replacing the exponential term with its second order Taylor expansion in (\ref{alt corr eqn partial}). Doing so leads to:
+
+\begin{equation}
+\label{temp corr eqn}
+t = \frac{519.7 - 3.6\ (a_{p} + a_{c})}{1 - 0.04\ a_{c} + \frac{(0.04\ a_{c})^2}{2}} - 459.7
+\end{equation}
+
+This term, is now a quadratic equation over $a_{c}$ and can be solved for $a_{c}$ algebraicly. The resulting expression for $a_c$ is uninsightful, so we banish it to a footnote below. Nevertheless, we can express the Density Altitude $a$ as the sum of the Pressure Altitude $a_{p}$ and a correction term $a_{c}$ that we can effectively approximate.
+
+This method mirrors the procedure outlined by Holtz in which we compute Density Altitude by applying an approximately linear correction term to a Pressure Altitude that we computed using a given Indicated Altitude.
+
+\section{Effects of Pressure and Temperature}
+
+We can use our Density Altitude equation to understand the effects that changes in pressure and temperature will have on an altimeter. When atmospheric conditions match the temperature and pressure parameters of the Standard Atmosphere, altimeter readings approximate Pressure Altitude\footnote{Excluding calibration, installation, and defect effects.}; and Density Altitude approximates True Altitude.
+
+When the air pressure at a given altitude equals $p_{std}$ and the temperature $t$ is approximately $60\degree F$, the relationship between the altitude correction term $a_c$ and $t$ is approximately linear as shown in figure \ref{plot alt corr temp}.
+
+\begin{figure}[H]
+\includegraphics[width=\textwidth]{density_altitude_correction.png}
+\caption{The relationship between $a_c$ and $t$ at standard pressure.}
+\label{plot alt corr temp}
+\end{figure}
+
+Under these conditions, equation (\ref{temp corr eqn}) simplifies to:
+
+
+
+Assume that Standard Atmospheric conditions prevail - i.e. pressure at sea level equals 29.92 in Hg, and the temperature is $60\degree F$. Now, increase temperature slightly so that the altitude correction term $a_c$ is small. As figure \ref{plot alt corr temp} shows, at Standard Pressure, the altitude correction term increases approximately linearly with termperature when temperature increases by a small amount.
+
+
+\begin{align}
+\end{align}
+
+\end{document}

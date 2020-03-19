@@ -24,6 +24,20 @@
 
 load (draw)$
 
+/* I. Equations */
+
+/*
+  Accepts a temperature, t (deg. F), and returns the corresponding
+  absolute temperature in Kelvins.
+*/
+tempAbs (t) := t + 459.7$
+
+/*
+  Accepts one argument: a, an altitude above sea level (1000 ft); and
+  returns the temperature (deg. F) at a in the Standard Atmosphere.
+*/
+tempStd (a) := 60 + tempRate * a$
+
 /*
   The equation relating an altitude above sea level (1000 ft),
   a, and the static pressure at a (in. Hg), p, in the Standard
@@ -58,13 +72,6 @@ pressureEq : p = pressureStd * %e^(- pressureCoeff * a)$
 pressure (a) := ev (rhs (pressureEq), a = a)$
 
 /*
-  Plots approximate pressure in the Standard Atmosphere.
-
-  Note: compare with figure 5.1 in [1].
-*/
-plotPressure () := draw2d (explicit (pressure (x), x, 0, 60), yrange = [0, 30], grid = true)$
-
-/*
   The equation expressing Pressure Altitude - i.e the altitude above
   sea level (1000 ft) that you would need to be at to observe the
   given pressure (in. Hg), p, in the Standard Atmosphere.
@@ -87,36 +94,28 @@ altPressureEq : solve (subst (pressureCoeff, k, pressureEq), a)[1]$
 altPressure (p) := ev (rhs (altPressureEq), p = p)$
 
 /*
-  The approximate temperature lapse rate (deg. F/1000 ft).
+  The Pressure Lapse Rate (in. Hg / 1000 ft) - i.e. the change in
+  static pressure w.r.t altitude above sea level in the Standard
+  Atmosphere.
 
-  Note: See figure 5.2 in [1].
+    - 1.0 = - pressureCoeff pressureStd
+
+  Note: see section 5.1 in [1].
+
+  Note: Holtz says that the Pressure Lapse Rate is approximately -1
+  in. Hg / 1000 ft at sea level. This leads to a simplification in
+  our density equation compared to the standard exponential
+  approximation relating density and altitude. See [2]
 */
-tempRate : -3.6$
+pressureRateEq : - 1.0 = subst (0, a, diff (pressureStd * %e^(-k * a), a))$
 
 /*
-  Accepts one argument: a, an altitude above sea level (1000 ft); and
-  returns the temperature (deg. F) at a in the Standard Atmosphere.
-*/
-tempStd (a) := 60 + tempRate * a$
-
-/* Plots the standard temperature. */
-plotTempStd () := draw2d (explicit (tempStd (a), a, 0, 30), grid = true)$
-
-/*
-  Relates density, d, with static pressure (in. Hg), p, and
+  Relates density (lb/ft^3), d, with static pressure (in. Hg), p, and
   temperature (deg. F), t.
 
-  Note: this is just the ideal gas law with densityCoeff substituted
-  for the specific gase constant. See [2].
-
-  Note: According to [3], the equation for air density is given by:
-
-    ρ = 1.325 p / (t + 459.7)
-
-  for example: ρ = 1.325 (29.92 inches Hg) / ((100 oF) + 459.7),
-  where the resulting density is in lb/ft3.
+  Note: this is just the ideal gas law. See [2].
 */
-densityEq : d = 1.325 * p / (t + 459.7)$
+densityEq : d = densityCoeff * p / tempAbs (t)$
 
 /*
   Accepts two arguments: p, the static pressure (in. Hg) at an
@@ -126,24 +125,11 @@ densityEq : d = 1.325 * p / (t + 459.7)$
 density (p, t) := ev (rhs (densityEq), p = p, t = t)$
 
 /*
-  Plots the relationship between pressure, temperature, and air
-  density in the Standard Atmosphere.
-*/
-plotDensity ()
-  := draw3d
-       (enhanced3d = [density (p, t), p, t, d],
-        line_width = 2,
-        explicit (density (p, t), p, 20, 29.92, t, 40, 80))$
-
-/*
   Relates density, d, to the altitude (1000 ft), a, above sea level
   that you would need to be at in the Standard Atmosphere to observe
   the given density.
 */
 altDensityEq : d = density (pressure (a), tempStd (a))$
-
-/* The pressure (in. Hg) at sea level in the Standard Atmosphere. */
-pressureStd : 29.92$
 
 /*
   The relation between:
@@ -173,8 +159,8 @@ altDensityCorrEq
                subst
                  (density (p, t), d,
                   altDensityEq)/
-               1.325)))/
-       pressure (ap));
+               densityCoeff)))/
+       pressure (ap))$
 
 /*
   Accepts two arguments: p, the static pressure (in. Hg) at an
@@ -191,23 +177,42 @@ altDensityCorrEq
 
 */
 altDensityCorr (p, t)
-  := ev (rhs (solve (altDensityCorrEq, ae)[1]), ap = altPressure (p), p = p, t = t);
+  := ev (rhs (solve (altDensityCorrEq, ae)[1]), ap = altPressure (p), p = p, t = t)$
 
 /*
-  The Pressure Lapse Rate (in. Hg / 1000 ft) - i.e. the change in
-  static pressure w.r.t altitude above sea level in the Standard
-  Atmosphere.
-
-    - 1.0 = - k pressureStd
-
-  Note: see section 5.1 in [1].
-
-  Note: Holtz says that the Pressure Lapse Rate is approximately -1
-  in. Hg / 1000 ft at sea level. This leads to a simplification in
-  our density equation compared to the standard exponential
-  approximation relating density and altitude. See [2]
+  The version of altDensityCorrEq published in the accompanying
+  article solved for temperature.
 */
-pressureRateEq : - 1.0 = subst (0, a, diff (pressureStd * %e^(-k * a), a))$
+publishedAltDensityCorrTempEq
+  : t = (519.7 + tempRate * (ap + ac)) * (1 + pressureCoeff * ac + (pressureCoeff * ac)^2/2) - 459.7$
+
+/*
+  The version of the altDensityCorrEq published in the accompanying
+  article written in the form of a quadratic equation.
+
+  Note: this equation should be approximately equivalent to
+  altDensityCorrEq. It differs numerical somewhat because we perform
+  a few algebraic manipulations that assume that the partial taylor
+  series expansion of the exponential term was exactly equal to the
+  exponential term. This isn't true, resulting in some disagreement
+  between the two equations.
+*/
+publishedAltDensityCorrEq
+  : (t - tempStd (ap)) - (pressureCoeff * tempAbs (t) + tempRate) * ac + (pressureCoeff * ac)^2/2 = 0$
+
+
+/* II. Numerical Constants. */
+
+/* The approximate temperature lapse rate (deg. F/1000 ft). */
+tempRate : -3.6$
+
+/* The pressure (in. Hg) at sea level in the Standard Atmosphere. */
+pressureStd : 29.92$
+
+/* The specific gas constant for dry air. */
+densityCoeff : 1.325$
+
+/* III. Numerical Functions */
 
 /*
   The pressure coefficient (1 / 1000 ft).
@@ -240,6 +245,56 @@ pressureRateEq : - 1.0 = subst (0, a, diff (pressureStd * %e^(-k * a), a))$
 pressureCoeff : 0.04$
 
 /*
+  The approximation used in the accompanying article to express
+  the effects of small temperature changes on altimeters.
+
+  Note: 1. assuming a small altitude correction value (<< 1).
+
+  Note: 2. assuming the observed pressure equals the standard
+  pressure at sea level. This is justified because we are only
+  illustrating the claim that the relationship between small changes
+  in temperature and changes in Density Altitude are approximately
+  linear for all pressures. This derivation is not taken as the
+  proof of this claim.
+*/
+smallTempEffect (t)
+  := ev (rhs
+       (solve
+         (subst (0, ae^2, /* 1. */
+           subst (0, ap, /* 2. */
+             altDensityCorrEq)),
+          ae)[1]),
+       t = t)$
+
+/*
+  Accepts two arguments: p, the static pressure (in. Hg); and, t,
+  the temperature (deg. F); and returns the approximate altitude
+  correction that needs to be added to the Pressure Altitude
+  corresponding to p to derive the Density Altitude.
+
+  Note: this function should be approximately equivalent to
+  altDensityCorr. 
+
+  See publishedAltDensityCorrTempEq.
+*/
+publishedAltDensityCorrTemp (p, t)
+  := ev (rhs (solve (publishedAltDensityCorrTempEq, ac)[1]), ap = altPressure (p), t = t)$ 
+
+/*
+  Accepts two arguments: p, the static pressure (in. Hg); and, t,
+  the temperature (deg. F); and returns the approximate altitude
+  correction that needs to be added to the Pressure Altitude
+  corresponding to p to derive the Density Altitude.
+
+  Note: this function should be approximately equal to
+  altDensityCorr. 
+
+  See publishedAltDensityCorrEq.
+*/
+publishedAltDensityCorr (p, t)
+  := ev (rhs (solve (publishedAltDensityCorrEq, ac)[1]), ap = altPressure (p), t = t)$
+
+/*
   Accepts two arguments: p, the static pressure (in. Hg) observed at
   some altitude above sea level, a; and t, the temperature (deg. F)
   observed at a; and returns an approximation of the altitude above
@@ -248,7 +303,8 @@ pressureCoeff : 0.04$
 
   See: altDensityNum
 */
-altDensity (p, t) := altPressure (p) + altDensityCorr (p, t);
+/* altDensity (p, t) := altPressure (p) + altDensityCorr (p, t); */
+altDensity (p, t) := altPressure (p) + publishedAltDensityCorr (p, t)$
 
 /*
   Accepts two arguments: p, the static pressure (in. Hg) observed at
@@ -262,15 +318,112 @@ altDensity (p, t) := altPressure (p) + altDensityCorr (p, t);
   altDensity.
 */
 altDensityNum (p, t)
-  := ev (find_root (subst (density (p, t), d, altDensityEq), a, 0, 10), p = p, t = t)$
+  := ev (find_root (subst (density (p, t), d, altDensityEq), a, -10, 10), p = p, t = t)$
+
+/* IV. Plots */
 
 /*
-  Accepts one argument: p, a static pressure (in. Hg); and returns
-  the Density Altitude approximations returned by altDensity and
-  altDensityNum for p over a range of temperatures.
+  Plots approximate pressure in the Standard Atmosphere.
+
+  Note: compare with figure 5.1 in [1].
 */
-plotAltDensityApproxs (p)
+plotPressure ()
   := draw2d
-       (explicit (altDensity (p, t), t, 40, 80),
+       (terminal = 'png,
+        file_name = "pressure",
+        explicit (pressure (x), x, 0, 60),
+        yrange = [0, 30],
+        xlabel = "Altitude (1000 ft)",
+        ylabel = "Static Pressure (in. Hg)",
+        grid = true)$
+
+/* Plots the standard temperature. */
+plotTempStd ()
+  := draw2d
+       (explicit (tempStd (a), a, 0, 30),
+        xlabel = "Altitude (1000 ft)",
+        ylabel = "Temperature (deg. F)",
+        grid = true)$
+
+/*
+  Plots the relationship between pressure, temperature, and air
+  density in the Standard Atmosphere.
+*/
+plotDensity ()
+  := draw3d
+       (terminal = 'png,
+        file_name = "density",
+        enhanced3d = [density (p, t), p, t, d],
+        line_width = 2,
+        explicit (density (p, t), p, 20, 29.92, t, 40, 80),
+        xlabel = "Pressure (in. Hg)",
+        ylabel = "Temperature (deg. F)",
+        zlabel = "Density (lb/ft^3)")$
+
+/*
+  plots the air density at various altitudes within the Standard
+  Atmosphere.
+*/
+plotAltDensity ()
+  := draw2d
+       (terminal = 'png,
+        file_name = "density",
+        explicit (density (pressure (a), tempStd (a)), a, 0, 30),
+        grid = true)$
+
+/*
+  Plots our second order approximation for the exponential that
+  appears in our Density Altitude calculations against the actual
+  exponential. The graph shows that our approximation is empirically
+  close for altitudes ranging from 0 - 10000 ft.
+*/
+plotExpApprox ()
+  := draw2d
+       (explicit (%e^(- 0.04 * t), t, 0, 30),
+        color = green,
+        explicit (1 - 0.04 * t + ((- 0.04 * t)^2)/2, t, 0, 30),
+        grid = true)$
+
+/*
+  Checks that the publishedAltDensityCorrEq and the altDensityCorrEq are
+  equivalent.
+*/
+checkPublishedAltDensityCorrEq ()
+  := draw3d
+       (explicit (altDensityCorr (p, t), p, 20, 40, t, 40, 80),
+        color = green,
+        explicit (publishedAltDensityCorr (p, t), p, 20, 40, t, 40, 80),
+        grid = true)$
+
+/*
+  Plots the effect of small changes on temperature on Altitude Density.
+*/
+plotAltDensityCorr ()
+  := draw2d
+       (explicit (altDensityCorr (29.92, t), t, 50, 70),
+        color = green,
+        explicit (smallTempEffect (t), t, 50, 70),
+        grid = true,
+        label (["Altitude Correction at Standard Pressure (29.92 in. Hg)", 59, .45]),
+        xlabel = "Temperature (deg. F)",
+        ylabel = "Altitude Correction (1000 ft)",
+        terminal = 'png,
+        file_name = "density_altitude_correction")$
+
+/*
+  Accepts one argument: ap, an altitude (1000 ft); and returns
+  the Density Altitude approximations returned by altDensity and
+  altDensityNum for the standard pressure at ap over a range of
+  temperatures.
+
+  Note: Maxima has a bug in which we cannot plot functions that
+  call find_root in 3d.
+*/
+plotAltDensityApproxs (ap)
+  := draw2d
+       (/*terminal = 'png,
+        file_name = "densityApproxs", */
+        explicit (altDensityNum (pressure (ap), t), t, tempStd (ap) - 40, tempStd (ap) + 40),
         color = red,
-        explicit (altDensityApprox (p, t), t, 40, 80))$
+        explicit (altDensity (pressure (ap), t), t, tempStd (ap) - 40, tempStd (ap) + 40),
+        grid = true)$

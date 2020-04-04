@@ -81,7 +81,7 @@ where $d$ ($lb/ft^3$) represents density, $p$ (in. Hg) represents pressure, and 
 Furthermore, because every altitude within the Standard Atmosphere corresponds to a specific pressure and temperature, we can use (\ref{density p t}) to compute the density of the air at every altitude. In (\ref{plot density}), we plot the relationship between density and altitude in the Standard Atmosphere.
 
 \begin{figure}[H]
-\includegraphics[width=\textwidth]{density.png}
+\includegraphics[width=\textwidth]{alt_density.png}
 \caption{The relationship between density and altitude.}
 \label{plot density}
 \end{figure}
@@ -129,12 +129,22 @@ t =& (519.7 - 3.6\ (a_{p} + a_{c})\ e^{0.04\ a_{c}} - 459.7
 
 There is no closed form analytic solution for (\ref{alt corr eqn}). However, we may derive a closed form approximation by replacing the exponential term with its second order Taylor expansion in (\ref{alt corr eqn partial}). Doing so leads to:
 
-\begin{equation}
+\begin{align}
+(t + 459.7)\ e^{- 0.04\ a_{c}} =& 519.7 - 3.6\ (a_{p} + a_{c})\\
+(t + 459.7)(1 - 0.04\ a_{c} + \frac{(0.04\ a_{c})^2}{2}) =& 519.7 - 3.6\ (a_{p} + a_{c}) \\
 \label{temp corr eqn}
-t = \frac{519.7 - 3.6\ (a_{p} + a_{c})}{1 - 0.04\ a_{c} + \frac{(0.04\ a_{c})^2}{2}} - 459.7
+(t - tempStd (a_p)) + (14.788 - 0.04\ t)\ a_c &+ \frac{(0.04\ a_c)^2}{2} = 0
+\end{align}
+
+where $tempStd (a_p) = 3.6 a_p - 60$.
+
+This term, is now a quadratic equation over $a_{c}$ and can be solved for $a_{c}$ algebraicly. The resulting expression for $a_c$ is:
+
+\begin{equation}
+a_c = 9242.5\ +\ 25\ t - 2.5 \sqrt{100\ t^2\ +\ 73740\ t\ -\ 720\ a_p\ +\ 13679809}                                                                                                                                         
 \end{equation}
 
-This term, is now a quadratic equation over $a_{c}$ and can be solved for $a_{c}$ algebraicly. The resulting expression for $a_c$ is uninsightful, so we banish it to a footnote below. Nevertheless, we can express the Density Altitude $a$ as the sum of the Pressure Altitude $a_{p}$ and a correction term $a_{c}$ that we can effectively approximate.
+Hence, we can express the Density Altitude $a$ as the sum of the Pressure Altitude $a_{p}$ and a correction term $a_{c}$ that we can effectively approximate.
 
 This method mirrors the procedure outlined by Holtz in which we compute Density Altitude by applying an approximately linear correction term to a Pressure Altitude that we computed using a given Indicated Altitude.
 

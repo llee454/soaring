@@ -262,28 +262,6 @@ densityCoeff : 1.325$
 pressureCoeff : 0.04$
 
 /*
-  The approximation used in the accompanying article to express
-  the effects of small temperature changes on altimeters.
-
-  Note: 1. assuming a small altitude correction value (<< 1).
-
-  Note: 2. assuming the observed pressure equals the standard
-  pressure at sea level. This is justified because we are only
-  illustrating the claim that the relationship between small changes
-  in temperature and changes in Density Altitude are approximately
-  linear for all pressures. This derivation is not taken as the
-  proof of this claim.
-*/
-smallTempEffect (t)
-  := ev (rhs
-       (solve
-         (subst (0, ae^2, /* 1. */
-           subst (0, ap, /* 2. */
-             altDensityCorrEq)),
-          ae)[1]),
-       t = t)$
-
-/*
   Accepts two arguments: p, the static pressure (in. Hg); and, t,
   the temperature (deg. F); and returns the approximate altitude
   correction that needs to be added to the Pressure Altitude

@@ -36,7 +36,7 @@ tempAbs (t) := t + 459.7$
   Accepts one argument: a, an altitude above sea level (1000 ft); and
   returns the temperature (deg. F) at a in the Standard Atmosphere.
 */
-tempStd (a) := 60 + tempRate * a$
+tempStd (a) := 59 + tempRate * a$
 
 /*
   The equation relating an altitude above sea level (1000 ft),
@@ -87,9 +87,9 @@ altPressureEq : solve (subst (pressureCoeff, k, pressureEq), a)[1]$
   the altitude above sea level (1000 ft) that you would need to be
   at in the Standard Atmosphere to observe p.
 
-         1          pressureStd
-    ----------- log(-----------)
-    pressureStd          p
+         1             pressureStd
+    -----------    log(-----------)
+    pressureCoeff           p
 */
 altPressure (p) := ev (rhs (altPressureEq), p = p)$
 
@@ -200,6 +200,23 @@ publishedAltDensityCorrTempEq
 publishedAltDensityCorrEq
   : (t - tempStd (ap)) - (pressureCoeff * tempAbs (t) + tempRate) * ac + (pressureCoeff * ac)^2/2 = 0$
 
+/*
+  Relates dt, the difference between the observed temperature and
+  the standard temperature; and ae, the density altitude correction
+  term when the altitude pressure equals 0.
+*/
+tweakTempEq
+  : factor (rhs (solve (subst (0, ap, subst (dt + tempStd (ap), t, altDensityCorrEq)), ae)[1]));
+
+/*
+  The linear approximation between dt, the difference between the
+  observed temperature and the standard temperature; and ae, the
+  density altitude correction when the altitude pressure equals 0.
+
+  Note: See the note accompanying tweakTempLinearApprox.
+*/
+tweakTempLinearApproxEq
+  : subst (0, dt, diff (tweakTempEq, dt)) * dt;
 
 /* II. Numerical Constants. */
 
@@ -320,6 +337,32 @@ altDensity (p, t) := altPressure (p) + publishedAltDensityCorr (p, t)$
 altDensityNum (p, t)
   := ev (find_root (subst (density (p, t), d, altDensityEq), a, -15, 15), p = p, t = t)$
 
+/*
+  Accepts one argument: dt, the difference between the observed
+  temperature and the standard temperature; and returns the density
+  altitude correction term when the altitude pressure equals 0.
+*/
+tweakTemp (dt) := ev (tweakTempEq, dt = dt);
+
+/*
+  Accepts one argument: dt, the difference between the observed
+  temperature and the standard temperature; and returns the
+  approximate density altitude correction term when the altitude
+  pressure equals 0.
+
+  Note:
+  The proof that the tweaked temperature equation is approximately
+  linear for small values of dt: tweakTempLinearApproxErr is
+  quadratic with a minima at 0. If we take a finite range for dt,
+  [-a, a], we find that the error term is monotonically increasing
+  over [-a, a]; hence -a and a are maxima. For a = 10, this error
+  term equals ~0.005, which is neglegible. Hence, tweakTemp is
+  effectively linear over [-10, 10].
+*/
+tweakTempLinearApprox (dt) := ev (tweakTempLinearApproxEq, dt = dt);
+
+tweakTempLinearApproxErr (dt) := sqrt ((tweakTempLinearApprox (dt) - tweakTemp (dt))^2);
+
 /* IV. Plots */
 
 /*
@@ -367,7 +410,7 @@ plotDensity ()
 plotAltDensity ()
   := draw2d
        (terminal = 'png,
-        file_name = "density",
+        file_name = "alt_density",
         explicit (density (pressure (a), tempStd (a)), a, 0, 30),
         grid = true)$
 
@@ -408,7 +451,7 @@ plotAltDensityCorr ()
         xlabel = "Temperature (deg. F)",
         ylabel = "Altitude Correction (1000 ft)",
         terminal = 'png,
-        file_name = "density_altitude_correction")$
+        file_name = "density_alt_corr")$
 
 /*
   Accepts one argument: ap, an altitude (1000 ft); and returns
@@ -422,8 +465,19 @@ plotAltDensityCorr ()
 plotAltDensityApproxs (ap)
   := draw2d
        (terminal = 'png,
-        file_name = "densityApproxs",
+        file_name = "density_approxs",
         explicit (altDensityNum (pressure (ap), t), t, tempStd (ap) - 40, tempStd (ap) + 40),
         color = red,
         explicit (altDensity (pressure (ap), t), t, tempStd (ap) - 40, tempStd (ap) + 40),
         grid = true)$
+
+plotTweakTemp ()
+  := draw2d
+       (explicit (tweakTemp (dt), dt, -10, 10),
+        color = green,
+        point_type = circle,
+        point_size = 2,
+        explicit (tweakTempLinearApprox (dt), dt, -10, 10),
+        color = red,
+        grid = true);
+

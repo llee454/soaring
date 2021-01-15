@@ -1,0 +1,84 @@
+/*
+  TODO: Ensure that the fact that older aircraft are more likely to appear in the sales sample is controlled for when estimating the age distribution.
+  TODO: Add Date of Sale to ensure that utilization rates are correct (that we're not implicitly assuming all sales were in 2020).
+*/
+
+
+load ("maxima-csv-analysis/core.mac")$
+
+/* Number of ASK 21s manufactured according to Wikipedia. */
+numManufactured: 994$
+
+/*
+  Number of Fatal Accidents Reports by the Aviation Safety Network
+  website for ASK 21s.
+*/
+numFatalAccidents: 7$
+
+/*
+  Information about ASK 21s sold on the Wings and Wheels website.
+
+  Note: we need date of sale otherwise utilization rates will be too low.
+*/
+M: read_matrix ("ask_age_hours.csv")$
+
+sampleSize: length (M)$
+
+/* Mean number of hours flown per year. */
+meanUtilRate : getMeanFieldValue (M, at (2))$
+
+/*
+  Returns a list of pairs of the form `[year, proportion]`, where
+  `proportion` represents the proportion of aircraft within the sample
+  that were manufactured in `year`.
+*/
+manYearDistr () :=
+  mapPartitionByField (M, at (1), lambda ([year, N], [year, length (N)/sampleSize]))$
+
+/*
+  Estimates the number of hours that have been accumulated by ASK 21s.
+
+  Note: This function assumes that the population of ASK 21s has the
+  same age distribution as the sample of aircraft sold over Wings and
+  Wheels. It uses this sample to determine the age distribution and the
+  hours reported on this site to estimate the average number of hours
+  flown each year in an ASK 21. This function also assumes that the
+  average utilization has been constant over time.
+
+  Result: 5.180783989053608E+7
+*/
+estNumHours () :=
+  rreduce (
+    lambda ([row, acc],
+      block ([year, proportion, numYears],
+        year: row [1],
+        proportion: row [2],
+        numYears: 2020 - year,
+        (numYears * meanUtilRate) * (proportion * numManufactured) + acc)),
+    manYearDistr (),
+    0)$
+
+/*
+  Estimates the number of fatal accidents per hour of flight for
+  ASK 21s.
+
+  Result: 1.351146856304023E-7
+
+  Note: The result is approximately 1 in 10 million hours.
+*/
+estFatalAccidentRate () :=
+  numFatalAccidents/estNumHours ();
+
+plotHoursDistr () :=
+ plotFieldValuesInIntervals (5, M, at (3),
+   "Distribution of No. Hours Flown Per Year Over ASK 21 Sample",
+   "No. Hours Flown Per Year",
+   "No. Aircraft")$
+
+plotAgeDistr () :=
+  plotFieldValuesInIntervals (1, M, at (1),
+    "Sample ASK 21 Age Distribution",
+    "Manufactured Year",
+    "No. Aircraft")$
+
+

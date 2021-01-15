@@ -7,7 +7,7 @@ modelCode='565'        # Wings and Wheels model code (in URL)
 modelName='ASK-21'     # registry.faa.gov model name
 totalNumAircraft='994' # estimate of the total number of gliders manufactured.
 
-gawk -f saleRecords.awk $makeCode $modeCode
+gawk -f saleRecords.awk $makeCode $modelCode
 exit 0
 
 # II. estimate the utilization rate of the aircraft model

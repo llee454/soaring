@@ -28,6 +28,14 @@ function createTempFile() {
   return fileName
 }
 
+# Accepts a date string and returns the associated year.
+function getYear(date) {
+  cmd = "date +%Y --date=\"" listing "\"" 
+  (cmd | getline dateYear)
+  close(cmd)
+  return dateYear
+}
+
 BEGIN {
   makeCode  = ARGV[1]
   modelCode = ARGV[2]
@@ -38,7 +46,10 @@ BEGIN {
   numScannedListings = 0
   pageNumber = 1
 
+  print "date listing closed,year manufactured,num flight hours,est flight hours per year"
+
   do {
+    inListing = 0
     inYear  = 0
     inHours = 0
     year  = ""
@@ -46,6 +57,13 @@ BEGIN {
     fetchURL(listingsFileName, listingsURL(makeCode, modelCode, pageNumber))
 
     while ((getline currentLine < listingsFileName) > 0) {
+      if (match(currentLine, "class=\"product details product-item-details\"")) {
+        inListing = 1
+      }
+      if (inListing && match(currentLine, "<span>([0-9]*-[0-9]*-[0-9]*)", matches)) {
+        inListing = 0
+        listing = matches[1]
+      } 
       if (match(currentLine, "<span class=\"toolbar-number\">([0-9]*)</span>", matches)) {
         numListings = matches[1]
       }
@@ -57,10 +75,10 @@ BEGIN {
       if (match(currentLine, "<strong>TOTAL TIME: </strong>")) { inHours = 1 }
       if (inHours && match(currentLine, "<span>([0-9]*)</span>", matches)) {
         inHours = 0
-        utilization = matches[1] / (2020 - year)
+        utilization = matches[1] / (getYear(listing) - year)
         utilizations[numScannedListings] = utilization
         numScannedListings = numScannedListings + 1
-        print year " " matches[1] " " utilization
+        print listing "," year "," matches[1] "," utilization
       }
     }
     pageNumber = pageNumber + 1

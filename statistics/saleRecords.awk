@@ -71,5 +71,6 @@ BEGIN {
   for (i = 0; i < numScannedListings; i ++) {
     totalUtilization = totalUtilization + utilizations[i]
   }
-  print "average hours/year: " (totalUtilization / numScannedListings)
+  print "average hours/year: "
+  print (totalUtilization / numScannedListings)
 }

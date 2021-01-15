@@ -8,7 +8,7 @@
 #
 # process using:
 #
-# gawk -v totalNumAircraft=997 -v utilizationRate=100 -f ageDistribution.awk data.dat
+# gawk -v totalNumAircraft=997 -v utilizationRate=100 -f hours.awk data.dat
 
 
 BEGIN {

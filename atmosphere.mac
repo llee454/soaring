@@ -180,11 +180,22 @@ altDensityCorr (p, t)
   := ev (rhs (solve (altDensityCorrEq, ae)[1]), ap = altPressure (p), p = p, t = t)$
 
 /*
-  The version of altDensityCorrEq published in the accompanying
+  Versions of altDensityCorrEq published in the accompanying
   article solved for temperature.
 */
-publishedAltDensityCorrTempEq
-  : t = (519.7 + tempRate * (ap + ac)) * (1 + pressureCoeff * ac + (pressureCoeff * ac)^2/2) - 459.7$
+
+publishedAltDensityCorrTempEq0Deriv
+  : factor
+      ((((altDensityCorrEq)^-1)
+       * (5 * (ac^2 *  pressureCoeff^2  - 2 * ac * pressureCoeff + 2)))
+       - (10 * ap * tempRate + 10 * ac * tempRate + 5187));
+
+/* publishedAltDensityCorrTempEq0Deriv manually simplified. */
+publishedAltDensityCorrTempEq0a
+  : (((ac * pressureCoeff)^2 * (t + 459.7))/2
+     - ac * (pressureCoeff * t + tempRate + 459.7)
+     + (t - ap * tempRate - 59)
+    ) = 0;
 
 /*
   The version of the altDensityCorrEq published in the accompanying
@@ -196,10 +207,19 @@ publishedAltDensityCorrTempEq
   series expansion of the exponential term was exactly equal to the
   exponential term. This isn't true, resulting in some disagreement
   between the two equations.
+
+  Note:
+  subst (tempStd - tempRate * ap, 59, (t - ap * tempRate - 59));
+  = (t - tempStd) + 7.2 ap
 */
 publishedAltDensityCorrEq
-  : (t - tempStd (ap)) - (pressureCoeff * tempAbs (t) + tempRate) * ac + (pressureCoeff * ac)^2/2 = 0$
-
+  :  publishedAltDensityCorrTempEq0Deriv;
+/*
+  : (((ac * pressureCoeff)^2 * (t + 459.7))/2
+     - ac * (pressureCoeff * t + tempRate + 459.7)
+     + ((t - tempStd (0)) + 7.2 * ap)
+    ) = 0;
+*/
 /*
   Relates dt, the difference between the observed temperature and
   the standard temperature; and ae, the density altitude correction

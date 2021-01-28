@@ -2,10 +2,10 @@
 # of sailplanes by scraping data from a variety of sources. See the
 # directory Readme for more information.
 
-makeCode='230'         # Wings and Wheels make code (in URL)
-modelCode='565'        # Wings and Wheels model code (in URL)
-modelName='ASK-21'     # registry.faa.gov model name
-totalNumAircraft='994' # estimate of the total number of gliders manufactured.
+makeCode='236'         # SGS 233 ASK 21 = '230'         # Wings and Wheels make code (in URL)
+modelCode=610 # SGS 233 ASK 21 = '565' Wings and Wheels model code (in URL)
+modelName='SGS-232'    # 'ASK-21' registry.faa.gov model name
+totalNumAircraft='579' # SGS 233 ASK 21 = '994' # estimate of the total number of gliders manufactured.
 
 gawk -f saleRecords.awk $makeCode $modelCode
 exit 0

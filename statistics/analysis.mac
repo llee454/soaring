@@ -1,19 +1,25 @@
 /*
+ Source: Accidents for SGS-233
+https://aviation-safety.net/wikibase/dblist2.php?at=2-33&re=&pc=G&op=&fa=&lo=&co=&ph=&na=&page=3
+
+
   TODO: Ensure that the fact that older aircraft are more likely to appear in the sales sample is controlled for when estimating the age distribution.
   TODO: Add Date of Sale to ensure that utilization rates are correct (that we're not implicitly assuming all sales were in 2020).
+  TODO: Use Registration info to estimate age distribution. Use Wings and Wheels to estimate utilization rate (flight hours/year). Use Aviation Safety Network DB to estimate number of fatal accidents. 
 */
-
 
 load ("maxima-csv-analysis/core.mac")$
 
 /* Number of ASK 21s manufactured according to Wikipedia. */
 numManufactured: 994$
+/* numManufactured: 579$ */
 
 /*
   Number of Fatal Accidents Reports by the Aviation Safety Network
   website for ASK 21s.
 */
-numFatalAccidents: 7$
+numFatalAccidents: 7$ 
+/* numFatalAccidents: 7$ */
 
 /*
   Information about ASK 21s sold on the Wings and Wheels website.
@@ -21,11 +27,14 @@ numFatalAccidents: 7$
   Note: we need date of sale otherwise utilization rates will be too low.
 */
 M: read_matrix ("ask_age_hours.csv")$
+/* M: read_matrix ("sgs_age_hours.csv")$ */
 
-sampleSize: length (M)$
+N: read_matrix ("ask21_man_years.csv")$
+
+sampleSize: length (N)$
 
 /* Mean number of hours flown per year. */
-meanUtilRate : getMeanFieldValue (M, at (2))$
+meanUtilRate : getMeanFieldValue (M, at (3))$
 
 /*
   Returns a list of pairs of the form `[year, proportion]`, where
@@ -33,7 +42,7 @@ meanUtilRate : getMeanFieldValue (M, at (2))$
   that were manufactured in `year`.
 */
 manYearDistr () :=
-  mapPartitionByField (M, at (1), lambda ([year, N], [year, length (N)/sampleSize]))$
+  mapPartitionByField (N, at (1), lambda ([year, X], [year, length (X)/sampleSize]))$
 
 /*
   Estimates the number of hours that have been accumulated by ASK 21s.
@@ -45,7 +54,7 @@ manYearDistr () :=
   flown each year in an ASK 21. This function also assumes that the
   average utilization has been constant over time.
 
-  Result: 5.180783989053608E+7
+  Result: 9.615457808304499E+7 for SGS 2-33.
 */
 estNumHours () :=
   rreduce (
@@ -62,7 +71,7 @@ estNumHours () :=
   Estimates the number of fatal accidents per hour of flight for
   ASK 21s.
 
-  Result: 1.351146856304023E-7
+  Result: 7.279944584598324E-8 for SGS 2-33 ~7/100 million. Comparable to passenger airliners.
 
   Note: The result is approximately 1 in 10 million hours.
 */

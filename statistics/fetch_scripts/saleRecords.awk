@@ -1,4 +1,4 @@
-# THis gawk script parses glider ads on Wings and Wheels to sample
+# This gawk script parses glider ads on Wings and Wheels to sample
 # the number of hours accumulated on various glider models.
 #
 # https://wingsandwheels.com/classifieds/gliders.html?make=230&marketplace_status=6188&model=570
